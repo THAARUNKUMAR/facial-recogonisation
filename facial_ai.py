@@ -1,96 +1,86 @@
-import nltk
-from nltk.chat.util import Chat, reflections
-import random
+from google.colab import drive
+drive.mount('/content/drive')
+import os
+path = '/content/drive/MyDrive/face1/Train'
+classes = os.listdir(path)
+print(classes)
 
-# Define your intents dictionary
-intents = {
-    "intents": [
-        {
+from tensorflow.keras.preprocessing import image_dataset_from_directory
 
-            "student": ["Hi", "How are you", "Is anyone there?", "Hello", "Good day"],
-            "AI": ["Hello, thanks for visiting", "Good to see you again", "Hi there, how can I help?"]
+base_dir = '/content/drive/MyDrive/face1'
 
-        },
-        {
-           "student": ["Bye", "See you later", "Goodbye"],
-            "AI": ["See you later, thanks for visiting", "Have a nice day", "Bye! Come back again soon."]
+# Create datasets
+train_datagen = image_dataset_from_directory(base_dir,
+image_size=(200,200),
+subset='training',
+seed = 1,
+validation_split=0.1,
+       batch_size= 32)
 
-        },
-        {
-            "student": ["Thanks", "Thank you", "That's helpful"],
-            "AI": ["Happy to help!", "Any time!", "My pleasure"]
-        },
-        {
+test_datagen = image_dataset_from_directory(base_dir,
+image_size=(200,200),
+subset='validation',
+seed = 1,
+validation_split=0.1,
+batch_size= 32)
 
-            "student": ["Where is my class?",  "Which way i can go to my class?"],
-            "AI": ["Which year did you studying" , "Give me your current pursuing year"]
-        },
-        {
+import tensorflow as tf
 
-            "student": ["Ist year", "1st year"],
-            "AI": ["Ground floor ,opposite from the office room ","room no:123"]
-        },
-        {
+from tensorflow import keras
+from keras import layers
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Activation, Dropout, Flatten, Dense
+from tensorflow.keras.layers import Conv2D, MaxPooling2D
 
-             "student": ["IInd year", "2nd year"],
-            "AI": ["Third floor ,room no:123"]
-        },
-        {
 
-             "student": ["IIIrd year", "3rd year"],
-            "AI": ["Third floor ,room no:123"]
-        },
-        {
-            "student": ["Will there be reminders or notifications before the event?","When will I get the notifications or remainders prior to the event"],
-            "AI": ["Yes ofcourse you will be receiving the notifications before event"],
+model = tf.keras.models.Sequential([
+layers.Conv2D(32, (3, 3), activation='relu', input_shape=(200, 200, 3)),
+layers.MaxPooling2D(2, 2),
+layers.Conv2D(64, (3, 3), activation='relu'),
+layers.MaxPooling2D(2, 2),
+layers.Conv2D(64, (3, 3), activation='relu'),
+layers.MaxPooling2D(2, 2),
+layers.Conv2D(64, (3, 3), activation='relu'),
+layers.MaxPooling2D(2, 2),
 
-        },
-        {
+layers.Flatten(),
+layers.Dense(512, activation='relu'),
+layers.BatchNormalization(),
+layers.Dense(512, activation='relu'),
+layers.Dropout(0.1),
+layers.BatchNormalization(),
+layers.Dense(512, activation='relu'),
+layers.Dropout(0.2),
+layers.BatchNormalization(),
+layers.Dense(1, activation='sigmoid') #output layer
+])
 
-            "student": ["Will I be able to get the certificate after completing workshop","If any complaints or doubts"],
-            "AI": ["Yes you will be receiving the certificate but it will take some time"],
+keras.utils.plot_model(
+model,
+show_shapes=True,
+show_dtype=True,
+show_layer_activations=True
+)
+model.compile(
+loss='binary_crossentropy',
+optimizer='adam',
+metrics=['accuracy']
+)
+history = model.fit(train_datagen,
+epochs=10,
+validation_data=test_datagen)
+from keras.preprocessing import image
+import numpy as np
+import matplotlib.pyplot as plt
 
-        },
+test_image= image.load_img("/content/drive/MyDrive/R.png",target_size=(200,200))
+plt.imshow(test_image)
+test_image=image.img_to_array(test_image)
+test_image=np.expand_dims(test_image,axis=0)
+result=model.predict(test_image)
+print(result)
 
-        {
-
-            "student": ["JA number","If any complaints or doubts"],
-            "AI": ["AI&DS-9876543210"],
-
-        },
-        {
-
-            "student": ["faculty profile"],
-            "AI": ["https://www.ritrjpm.ac.in/departments/ai-and-ds/faculty.php"],
-
-        },
-        {
-
-            "student": ["Who is the joker in college"],
-            "AI": ["suba madhavan","soker madhavan"],
-
-        },
-    ]
-}
-
-# Function to handle user input and provide appropriate response
-def get_response(user_input):
-    user_input = user_input.lower()
-    for intent in intents['intents']:
-        for pattern in intent['student']:
-            if pattern.lower() in user_input:
-                return random.choice(intent['AI'])
-    return "Sorry, I'm not sure how to respond to that."
-
-# Example of interacting with the chatbot
-def chat():
-    print("Chatbot: Hello! How can I assist you today? (type 'bye' to exit)")
-    while True:
-        user_input = input("You: ")
-        if user_input.lower() == 'bye'or"quit":
-            print("Chatbot: Goodbye!")
-            break
-        response = get_response(user_input)
-        print("Chatbot:", response)
-if __name__ == "__main__":
-    chat()
+if(result==1):
+  print("C")
+else:
+  print("R")
